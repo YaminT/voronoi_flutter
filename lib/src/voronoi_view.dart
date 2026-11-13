@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'voronoi.dart';
 import 'voronoi_cell.dart';
+import 'voronoi_painter.dart';
 
 /// Draws a Voronoi diagram that fills the available space.
 ///
@@ -11,7 +12,7 @@ class VoronoiView extends StatefulWidget {
   const VoronoiView({
     super.key,
     required this.sites,
-    this.colors = _defaultColors,
+    this.colors = VoronoiStyle.defaultColors,
     this.borderColor = Colors.white,
     this.borderWidth = 2,
     this.siteColor = Colors.black87,
@@ -34,15 +35,6 @@ class VoronoiView extends StatefulWidget {
   /// Called with the tapped cell.
   final ValueChanged<VoronoiCell>? onCellTap;
 
-  static const _defaultColors = [
-    Color(0xFF8ECAE6),
-    Color(0xFF219EBC),
-    Color(0xFFFFB703),
-    Color(0xFFFB8500),
-    Color(0xFFB5E48C),
-    Color(0xFFF4A6C0),
-  ];
-
   @override
   State<VoronoiView> createState() => _VoronoiViewState();
 }
@@ -51,6 +43,31 @@ class _VoronoiViewState extends State<VoronoiView> {
   Voronoi? _voronoi;
   List<Offset>? _lastSites;
   Size? _lastSize;
+
+  // Same style object while the settings stay the same, so repaint is skipped.
+  VoronoiStyle? _cachedStyle;
+
+  VoronoiStyle get _style {
+    final w = widget;
+    final c = _cachedStyle;
+    if (c == null ||
+        c.colors != w.colors ||
+        c.borderColor != w.borderColor ||
+        c.borderWidth != w.borderWidth ||
+        c.siteColor != w.siteColor ||
+        c.siteRadius != w.siteRadius ||
+        c.showSites != w.showSites) {
+      _cachedStyle = VoronoiStyle(
+        colors: w.colors,
+        borderColor: w.borderColor,
+        borderWidth: w.borderWidth,
+        siteColor: w.siteColor,
+        siteRadius: w.siteRadius,
+        showSites: w.showSites,
+      );
+    }
+    return _cachedStyle!;
+  }
 
   Voronoi _diagram(Size size) {
     final changed =
@@ -86,7 +103,7 @@ class _VoronoiViewState extends State<VoronoiView> {
                     widget.onCellTap!(voronoi.cellAt(details.localPosition)),
           child: CustomPaint(
             size: size,
-            painter: _VoronoiPainter(voronoi, widget),
+            painter: _VoronoiPainter(voronoi, _style),
           ),
         );
       },
@@ -95,42 +112,16 @@ class _VoronoiViewState extends State<VoronoiView> {
 }
 
 class _VoronoiPainter extends CustomPainter {
-  _VoronoiPainter(this.voronoi, this.view);
+  _VoronoiPainter(this.voronoi, this.style);
 
   final Voronoi voronoi;
-  final VoronoiView view;
+  final VoronoiStyle style;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final fill = Paint()..style = PaintingStyle.fill;
-    final border = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = view.borderWidth
-      ..color = view.borderColor;
-
-    for (final cell in voronoi.cells) {
-      final path = cell.toPath();
-      fill.color = view.colors[cell.index % view.colors.length];
-      canvas.drawPath(path, fill);
-      canvas.drawPath(path, border);
-    }
-
-    if (view.showSites) {
-      final dot = Paint()..color = view.siteColor;
-      for (final site in voronoi.sites) {
-        canvas.drawCircle(site, view.siteRadius, dot);
-      }
-    }
-  }
+  void paint(Canvas canvas, Size size) =>
+      paintVoronoi(canvas, voronoi, style: style);
 
   @override
   bool shouldRepaint(_VoronoiPainter old) =>
-      old.voronoi != voronoi ||
-      old.view.colors != view.colors ||
-      old.view.borderColor != view.borderColor ||
-      old.view.borderWidth != view.borderWidth ||
-      old.view.siteColor != view.siteColor ||
-      old.view.siteRadius != view.siteRadius ||
-      old.view.showSites != view.showSites;
+      old.voronoi != voronoi || old.style != style;
 }

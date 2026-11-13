@@ -45,6 +45,24 @@ voronoi.relax();                 // Lloyd relaxation, returns a new diagram
 Voronoi.random(100, bounds);     // random sites, optional seed
 ```
 
+### Draw without widgets (engine only)
+
+The drawing code uses only `dart:ui`, so it also works straight on the Flutter engine, with no widget framework.
+
+```dart
+paintVoronoi(canvas, voronoi, style: const VoronoiStyle(borderWidth: 4));
+
+final picture = voronoiToPicture(voronoi);      // Picture
+final image = await voronoiToImage(voronoi);   // Image, e.g. to save a PNG
+```
+
+`example/lib/engine_main.dart` is a full app with no widgets: it uses `PlatformDispatcher`, `SceneBuilder` and raw pointer events.
+
+```sh
+cd example
+flutter run -t lib/engine_main.dart
+```
+
 ## Notes
 
 - Cells are clipped to the rectangle you pass in.
