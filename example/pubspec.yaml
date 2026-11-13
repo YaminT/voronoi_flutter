@@ -1,0 +1,15 @@
+name: voronoi_example
+description: Example for voronoi_flutter.
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  voronoi_flutter:
+    path: ../
+
+flutter:
+  uses-material-design: true
