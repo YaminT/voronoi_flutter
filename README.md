@@ -4,6 +4,12 @@ Simple Voronoi diagrams for Flutter. Give it points, get cells. Includes a widge
 
 Started as a master's project, now updated for current Flutter and Dart.
 
+| 30 random points | after 5 `relax()` steps |
+| --- | --- |
+| ![random](doc/random.png) | ![relaxed](doc/relaxed.png) |
+
+Made with `flutter test tool/screenshots.dart`.
+
 ## Install
 
 ```yaml
