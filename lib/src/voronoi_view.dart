@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import 'voronoi.dart';
 import 'voronoi_cell.dart';
@@ -14,9 +14,9 @@ class VoronoiView extends StatefulWidget {
     super.key,
     required this.sites,
     this.colors = VoronoiStyle.defaultColors,
-    this.borderColor = Colors.white,
+    this.borderColor = const Color(0xFFFFFFFF),
     this.borderWidth = 2,
-    this.siteColor = Colors.black87,
+    this.siteColor = const Color(0xDD000000),
     this.siteRadius = 3,
     this.showSites = true,
     this.onCellTap,
