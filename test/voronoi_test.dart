@@ -94,4 +94,52 @@ void main() {
     expect(v.cells.fold<double>(0, (s, c) => s + c.area), closeTo(10000, 1e-6));
     expect(v.cells[1].area, closeTo(10000, 1e-6));
   });
+
+  test('sites on a grid: only the 4 sides count as neighbours', () {
+    final v = Voronoi([
+      for (var y = 0; y < 10; y++)
+        for (var x = 0; x < 10; x++) Offset(x * 10 + 5.0, y * 10 + 5.0),
+    ], bounds);
+    for (final cell in v.cells) {
+      final x = cell.index % 10;
+      final y = cell.index ~/ 10;
+      final expected = [
+        if (y > 0) cell.index - 10,
+        if (x > 0) cell.index - 1,
+        if (x < 9) cell.index + 1,
+        if (y < 9) cell.index + 10,
+      ];
+      expect(cell.neighbors, expected);
+      expect(cell.polygon.length, 4);
+      expect(cell.area, closeTo(100, 1e-9));
+    }
+  });
+
+  test('2x2 grid: diagonal sites are not neighbours', () {
+    final v = Voronoi([
+      const Offset(25, 25),
+      const Offset(75, 25),
+      const Offset(25, 75),
+      const Offset(75, 75),
+    ], bounds);
+    expect(v.cells[0].neighbors, [1, 2]);
+    expect(v.cells[3].neighbors, [1, 2]);
+  });
+
+  test('bad input gives an ArgumentError', () {
+    expect(
+      () => Voronoi([const Offset(double.nan, 1)], bounds),
+      throwsArgumentError,
+    );
+    expect(
+      () => Voronoi([const Offset(1, double.infinity)], bounds),
+      throwsArgumentError,
+    );
+    expect(() => Voronoi([], Rect.zero), throwsArgumentError);
+  });
+
+  test('a site outside the bounds can get an empty cell', () {
+    final v = Voronoi([const Offset(50, 50), const Offset(500, 50)], bounds);
+    expect(v.cells[1].isEmpty, isTrue);
+  });
 }

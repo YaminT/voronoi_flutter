@@ -1,6 +1,6 @@
 name: voronoi_flutter
 description: Simple Voronoi diagrams for Flutter. Compute cells from points, find the nearest site, relax the diagram, and draw it with one widget.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/YaminT/voronoi_flutter
 repository: https://github.com/YaminT/voronoi_flutter
 

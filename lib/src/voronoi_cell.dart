@@ -14,12 +14,14 @@ class VoronoiCell {
 
   final Offset site;
 
-  /// Corners of the cell, in order. Empty if the site was a duplicate.
+  /// Corners of the cell, in order. Empty if [isEmpty].
   final List<Offset> polygon;
 
   /// Indices of the sites that share an edge with this cell.
   final List<int> neighbors;
 
+  /// True if the site has no region: another site has the same position,
+  /// or the site lies outside the bounds and its region is cut away.
   bool get isEmpty => polygon.isEmpty;
 
   /// Area of the cell (shoelace formula).

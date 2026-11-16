@@ -42,6 +42,13 @@ void paintVoronoi(
   Set<int> highlight = const {},
   Color highlightColor = const Color(0xFFE63946),
 }) {
+  if (style.colors.isEmpty) {
+    throw ArgumentError.value(
+      style.colors,
+      'style.colors',
+      'must not be empty',
+    );
+  }
   final fill = Paint()..style = PaintingStyle.fill;
   final border = Paint()
     ..style = PaintingStyle.stroke
@@ -66,24 +73,29 @@ void paintVoronoi(
   }
 }
 
-/// Records the diagram into a [Picture].
+/// Records the diagram into a [Picture]. The top left of the bounds
+/// is drawn at (0, 0).
 Picture voronoiToPicture(
   Voronoi voronoi, {
   VoronoiStyle style = const VoronoiStyle(),
 }) {
+  final bounds = voronoi.bounds;
   final recorder = PictureRecorder();
-  paintVoronoi(Canvas(recorder, voronoi.bounds), voronoi, style: style);
+  final canvas = Canvas(recorder, Offset.zero & bounds.size);
+  canvas.translate(-bounds.left, -bounds.top);
+  paintVoronoi(canvas, voronoi, style: style);
   return recorder.endRecording();
 }
 
-/// Renders the diagram into an [Image], for example to save it as a PNG.
+/// Renders the diagram into an [Image] the size of the bounds, for example
+/// to save it as a PNG.
 Future<Image> voronoiToImage(
   Voronoi voronoi, {
   VoronoiStyle style = const VoronoiStyle(),
 }) {
   final picture = voronoiToPicture(voronoi, style: style);
   return picture.toImage(
-    voronoi.bounds.right.ceil(),
-    voronoi.bounds.bottom.ceil(),
+    voronoi.bounds.width.ceil(),
+    voronoi.bounds.height.ceil(),
   );
 }

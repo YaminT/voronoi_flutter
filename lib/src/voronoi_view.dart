@@ -8,6 +8,7 @@ import 'voronoi_painter.dart';
 ///
 /// [sites] use unit coordinates: (0, 0) is the top left and (1, 1) the
 /// bottom right, so the diagram keeps its shape when the widget is resized.
+/// Pass a new list when the sites change; changing the same list is not noticed.
 class VoronoiView extends StatefulWidget {
   const VoronoiView({
     super.key,

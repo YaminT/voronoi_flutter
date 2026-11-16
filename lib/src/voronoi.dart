@@ -12,6 +12,16 @@ class Voronoi {
   Voronoi(List<Offset> sites, this.bounds)
     : sites = List.unmodifiable(sites),
       cells = [] {
+    for (final s in this.sites) {
+      if (!s.isFinite) throw ArgumentError.value(s, 'sites', 'must be finite');
+    }
+    if (bounds.isEmpty || !bounds.isFinite) {
+      throw ArgumentError.value(
+        bounds,
+        'bounds',
+        'must be finite and not empty',
+      );
+    }
     _buildGrid();
     for (var i = 0; i < this.sites.length; i++) {
       cells.add(_buildCell(i));
@@ -189,6 +199,26 @@ class Voronoi {
     return farthest;
   }
 
+  /// A cut that passes through a corner leaves two equal points. Dropping
+  /// the first one (and its edge) keeps sites that only touch at a corner
+  /// from being counted as neighbours.
+  ({List<Offset> polygon, List<int> owners}) _removeZeroEdges(
+    List<Offset> polygon,
+    List<int> owners,
+  ) {
+    final tolerance = 1e-9 * max(bounds.width, bounds.height);
+    final keptPolygon = <Offset>[];
+    final keptOwners = <int>[];
+    for (var i = 0; i < polygon.length; i++) {
+      final next = polygon[(i + 1) % polygon.length];
+      if ((polygon[i] - next).distance > tolerance) {
+        keptPolygon.add(polygon[i]);
+        keptOwners.add(owners[i]);
+      }
+    }
+    return (polygon: keptPolygon, owners: keptOwners);
+  }
+
   /// Keeps the part of [polygon] that is closer to [site] than to [other].
   /// Edges created by the cut are marked with [otherIndex].
   ({List<Offset> polygon, List<int> owners}) _clip(
@@ -230,6 +260,6 @@ class Voronoi {
       }
     }
 
-    return (polygon: newPolygon, owners: newOwners);
+    return _removeZeroEdges(newPolygon, newOwners);
   }
 }

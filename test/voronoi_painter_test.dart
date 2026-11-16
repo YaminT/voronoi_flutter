@@ -28,4 +28,30 @@ void main() {
       expect(pixel(90, 90), 0x0000FF); // right cell: blue
     });
   });
+
+  testWidgets('bounds that do not start at (0, 0)', (tester) async {
+    await tester.runAsync(() async {
+      final shifted = Voronoi([
+        const Offset(-75, 0),
+        const Offset(-25, 0),
+      ], const Rect.fromLTRB(-100, -50, 0, 50));
+      final image = await voronoiToImage(shifted, style: style);
+      final data = (await image.toByteData())!;
+      expect(image.width, 100);
+      expect(image.height, 100);
+      expect(data.getUint8(0), 0xFF); // top left: red
+      expect(data.getUint8((99 * 4) + 2), 0xFF); // top right: blue
+    });
+  });
+
+  test('empty colors are rejected', () {
+    expect(
+      () => paintVoronoi(
+        Canvas(PictureRecorder()),
+        voronoi,
+        style: const VoronoiStyle(colors: []),
+      ),
+      throwsArgumentError,
+    );
+  });
 }

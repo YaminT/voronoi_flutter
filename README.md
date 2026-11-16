@@ -72,7 +72,8 @@ flutter run -t lib/engine_main.dart
 ## Notes
 
 - Cells are clipped to the rectangle you pass in.
-- Sites with the same position: the first keeps the cell, the others get an empty one (`cell.isEmpty`).
+- A site gets an empty cell (`cell.isEmpty`) if another site has the same position (the first one keeps it), or if it lies outside the rectangle and its region is cut away.
+- Sites must be finite; the rectangle must not be empty. Otherwise `ArgumentError`.
 - Each cell is cut by the bisector to nearby sites, found through a grid. 20,000 sites take about half a second on a desktop.
 - The diagram is computed on the main isolate. For very large inputs, build it in `compute()`.
 
