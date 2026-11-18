@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -115,6 +116,32 @@ void main() {
         ]),
       );
       expect(result.hull, [1, 2, 0]);
+    });
+  });
+
+  group('points almost on a line are all used', () {
+    final random = Random(9);
+    final cases = {
+      'steps of 0.1 and 0.3': [
+        for (var i = 0; i < 1000; i++) Offset(i * 0.1, i * 0.3),
+      ],
+      'slope 0.7': [
+        for (var i = 0; i < 1000; i++) Offset(i * 1.1, i * 1.1 * 0.7),
+      ],
+      'noise of 1e-9': [
+        for (var i = 0; i < 500; i++)
+          Offset(i * 1.0, i * 2.0 + random.nextDouble() * 1e-9),
+      ],
+    };
+    cases.forEach((name, points) {
+      test(name, () {
+        final result = triangulate(flat(points));
+        expect(result.triangles.toSet().length, points.length);
+        for (var e = 0; e < result.halfedges.length; e++) {
+          final twin = result.halfedges[e];
+          if (twin != -1) expect(result.halfedges[twin], e);
+        }
+      });
     });
   });
 

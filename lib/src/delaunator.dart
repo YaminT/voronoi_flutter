@@ -16,7 +16,35 @@ typedef Triangulation = ({
 
 /// [coords] is x0, y0, x1, y1, ... Of equal points the lowest index is used.
 /// Points on one line give no triangles; the hull is the line in order.
-Triangulation triangulate(Float64List coords) => _Triangulator(coords).run();
+///
+/// Points that are almost, but not exactly, on one line can make the
+/// sweep lose points. Then the triangulation is made again for a copy of
+/// the points moved by a tiny amount (about 1e-8 of their size).
+Triangulation triangulate(Float64List coords) {
+  final first = _Triangulator(coords);
+  final result = first.run();
+  if (!first.lostPoint) return result;
+  return _Triangulator(_moved(coords)).run();
+}
+
+Float64List _moved(Float64List coords) {
+  var minX = double.infinity, minY = double.infinity;
+  var maxX = -double.infinity, maxY = -double.infinity;
+  for (var i = 0; i < coords.length; i += 2) {
+    minX = min(minX, coords[i]);
+    minY = min(minY, coords[i + 1]);
+    maxX = max(maxX, coords[i]);
+    maxY = max(maxY, coords[i + 1]);
+  }
+  final r = 1e-8 * sqrt(pow(maxX - minX, 2) + pow(maxY - minY, 2));
+  final moved = Float64List.fromList(coords);
+  for (var i = 0; i < coords.length; i += 2) {
+    final x = coords[i], y = coords[i + 1];
+    moved[i] = x + sin(x + y) * r;
+    moved[i + 1] = y + cos(x - y) * r;
+  }
+  return moved;
+}
 
 const _epsilon = 2.220446049250313e-16;
 
@@ -47,6 +75,8 @@ class _Triangulator {
   late final Int32List _hullHash;
   final _edgeStack = Uint32List(512);
 
+  /// True if a point that is not equal to another was left out.
+  var lostPoint = false;
   var _trianglesLength = 0;
   var _hullStart = 0;
   var _cx = 0.0;
@@ -162,7 +192,10 @@ class _Triangulator {
         }
         q = _hullNext[e];
       }
-      if (e == -1) continue;
+      if (e == -1) {
+        lostPoint = true;
+        continue;
+      }
 
       var t = _addTriangle(e, i, _hullNext[e], -1, -1, _hullTri[e]);
       _hullTri[i] = _legalize(t + 2);
