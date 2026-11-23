@@ -36,6 +36,8 @@ class Delaunay {
   late Int32List _halfedges;
   late Uint32List _hull;
   late Int32List _inedges;
+  late Int32List _hullIndex;
+  late Int32List _linePosition;
   Uint32List? _collinear;
 
   /// Point indices of the triangles, three per triangle.
@@ -61,6 +63,110 @@ class Delaunay {
 
   /// Number of points.
   int get length => points.length ~/ 2;
+
+  /// Indices of the points that share an edge with point [i].
+  ///
+  /// For points on a line these are the previous and the next one. A point
+  /// that is equal to an earlier point has none.
+  Iterable<int> neighbors(int i) sync* {
+    RangeError.checkValueInInterval(i, 0, length - 1, 'i');
+    final line = _collinear;
+    if (line != null) {
+      final k = _linePosition[i];
+      if (k > 0) yield line[k - 1];
+      if (k != -1 && k < line.length - 1) yield line[k + 1];
+      return;
+    }
+
+    final first = _inedges[i];
+    if (first == -1) return;
+    var e = first;
+    var previous = -1;
+    do {
+      yield previous = _triangles[e];
+      e = e % 3 == 2 ? e - 2 : e + 1;
+      if (_triangles[e] != i) return;
+      e = _halfedges[e];
+      if (e == -1) {
+        // On the hull: the fan is open, so add the next hull point.
+        final p = _hull[(_hullIndex[i] + 1) % _hull.length];
+        if (p != previous) yield p;
+        return;
+      }
+    } while (e != first);
+  }
+
+  /// Index of the point closest to [point], or -1 if there are no points.
+  ///
+  /// The search walks from the point [start] towards [point] along the edges
+  /// of the triangulation, so a [start] near [point] makes it fast.
+  int find(Offset point, [int start = 0]) {
+    if (length == 0 || point.dx.isNaN || point.dy.isNaN) return -1;
+    RangeError.checkValueInInterval(start, 0, length - 1, 'start');
+    if (_collinear != null) return _findOnLine(point, start);
+
+    var i = start;
+    int c;
+    while ((c = _step(i, point)) != i && c != start) {
+      i = c;
+    }
+    return c;
+  }
+
+  // The neighbour of [i] closest to [point] if it is closer than [i].
+  int _step(int i, Offset point) {
+    if (_inedges[i] == -1) return (i + 1) % length;
+    var best = i;
+    var bestDistance = _distance(i, point);
+    final first = _inedges[i];
+    var e = first;
+    do {
+      final t = _triangles[e];
+      final d = _distance(t, point);
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = t;
+      }
+      e = e % 3 == 2 ? e - 2 : e + 1;
+      if (_triangles[e] != i) break;
+      e = _halfedges[e];
+      if (e == -1) {
+        final p = _hull[(_hullIndex[i] + 1) % _hull.length];
+        if (p != t && _distance(p, point) < bestDistance) return p;
+        break;
+      }
+    } while (e != first);
+    return best;
+  }
+
+  // On a line the distance only gets smaller until the closest point.
+  int _findOnLine(Offset point, int start) {
+    final line = _collinear!;
+    var k = _linePosition[start];
+    if (k == -1) k = 0;
+    var best = _distance(line[k], point);
+    while (true) {
+      final before = k > 0 ? _distance(line[k - 1], point) : double.infinity;
+      final after = k < line.length - 1
+          ? _distance(line[k + 1], point)
+          : double.infinity;
+      if (before < best && before <= after) {
+        k--;
+        best = before;
+      } else if (after < best) {
+        k++;
+        best = after;
+      } else {
+        return line[k];
+      }
+    }
+  }
+
+  double _distance(int i, Offset point) {
+    final dx = point.dx - points[2 * i];
+    final dy = point.dy - points[2 * i + 1];
+    return dx * dx + dy * dy;
+  }
 
   /// Triangulates again after the values of [points] were changed.
   void update() {
@@ -100,6 +206,18 @@ class Delaunay {
     for (var e = 0; e < _triangles.length; e++) {
       final p = _triangles[e % 3 == 2 ? e - 2 : e + 1];
       if (_halfedges[e] == -1 || _inedges[p] == -1) _inedges[p] = e;
+    }
+
+    _hullIndex = Int32List(length)..fillRange(0, length, -1);
+    for (var k = 0; k < _hull.length; k++) {
+      _hullIndex[_hull[k]] = k;
+    }
+    _linePosition = Int32List(length)..fillRange(0, length, -1);
+    final line = _collinear;
+    if (line != null) {
+      for (var k = 0; k < line.length; k++) {
+        _linePosition[line[k]] = k;
+      }
     }
   }
 
