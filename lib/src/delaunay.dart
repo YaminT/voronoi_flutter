@@ -168,6 +168,66 @@ class Delaunay {
     return dx * dx + dy * dy;
   }
 
+  /// Adds the edges of the triangulation, including the hull, to [path].
+  /// Without [path] a new one is made. The path is returned.
+  Path render([Path? path]) {
+    path ??= Path();
+    for (var i = 0; i < _halfedges.length; i++) {
+      final j = _halfedges[i];
+      if (j < i) continue;
+      path
+        ..moveTo(points[2 * _triangles[i]], points[2 * _triangles[i] + 1])
+        ..lineTo(points[2 * _triangles[j]], points[2 * _triangles[j] + 1]);
+    }
+    return renderHull(path);
+  }
+
+  /// Adds the outline of the convex hull to [path] (see [render]).
+  Path renderHull([Path? path]) {
+    path ??= Path();
+    if (_hull.isEmpty) return path;
+    return path..addPolygon(hullPolygon(), true);
+  }
+
+  /// Adds triangle [t] to [path] (see [render]).
+  Path renderTriangle(int t, [Path? path]) {
+    return (path ?? Path())..addPolygon(trianglePolygon(t), true);
+  }
+
+  /// Adds a circle of [radius] for every point to [path] (see [render]).
+  Path renderPoints([Path? path, double radius = 2]) {
+    path ??= Path();
+    for (var i = 0; i < length; i++) {
+      path.addOval(
+        Rect.fromCircle(
+          center: Offset(points[2 * i], points[2 * i + 1]),
+          radius: radius,
+        ),
+      );
+    }
+    return path;
+  }
+
+  /// The corners of the convex hull in order. Unlike d3, the first corner
+  /// is not repeated at the end.
+  List<Offset> hullPolygon() => [for (final i in _hull) _point(i)];
+
+  /// The corners of triangle [t], which is made of the point indices
+  /// `triangles[3 * t]` to `triangles[3 * t + 2]`.
+  List<Offset> trianglePolygon(int t) {
+    RangeError.checkValueInInterval(t, 0, _triangles.length ~/ 3 - 1, 't');
+    return [for (var k = 0; k < 3; k++) _point(_triangles[3 * t + k])];
+  }
+
+  /// All triangles as lists of corners.
+  Iterable<List<Offset>> trianglePolygons() sync* {
+    for (var t = 0; t < _triangles.length ~/ 3; t++) {
+      yield trianglePolygon(t);
+    }
+  }
+
+  Offset _point(int i) => Offset(points[2 * i], points[2 * i + 1]);
+
   /// Triangulates again after the values of [points] were changed.
   void update() {
     _check();
